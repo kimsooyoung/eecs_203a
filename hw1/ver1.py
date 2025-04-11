@@ -40,25 +40,25 @@ def main():
             # ✅ Show original image
             show_image(image, title="Original Image")
 
-            # # ✅ Subsample the image
-            # subsample_4 = subsample(image, 4)  # 128 x 128
-            # subsample_16 = subsample(image, 16)  # 32 x 32
+            # ✅ Subsample the image
+            subsample_4 = subsample(image, 4)  # 128 x 128
+            subsample_16 = subsample(image, 16)  # 32 x 32
 
-            # # ✅ Interpolate back to 512 x 512 using nearest neighbor
-            # interp_4 = nearest_neighbor_interpolation(subsample_4, (ROWS, COLUMNS))
-            # interp_16 = nearest_neighbor_interpolation(subsample_16, (ROWS, COLUMNS))
+            # ✅ Interpolate back to 512 x 512 using nearest neighbor
+            interp_4 = nearest_neighbor_interpolation(subsample_4, (ROWS, COLUMNS))
+            interp_16 = nearest_neighbor_interpolation(subsample_16, (ROWS, COLUMNS))
 
-            # # ✅ Show all images
-            # show_image(subsample_4, title="Subsampled by 4 (128x128)")
-            # show_image(subsample_16, title="Subsampled by 16 (32x32)")
-            # show_image(interp_4, title="Interpolated from 128x128")
-            # show_image(interp_16, title="Interpolated from 32x32")
+            # ✅ Show all images
+            show_image(subsample_4, title="Subsampled by 4 (128x128)")
+            show_image(subsample_16, title="Subsampled by 16 (32x32)")
+            show_image(interp_4, title="Interpolated from 128x128")
+            show_image(interp_16, title="Interpolated from 32x32")
 
-            # # ✅ Save images
-            # save_image(subsample_4, "subsample_4.png")
-            # save_image(subsample_16, "subsample_16.png")
-            # save_image(interp_4, "interp_4.png")
-            # save_image(interp_16, "interp_16.png")
+            # ✅ Save images
+            save_image(subsample_4, "subsample_4.png")
+            save_image(subsample_16, "subsample_16.png")
+            save_image(interp_4, "interp_4.png")
+            save_image(interp_16, "interp_16.png")
 
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)

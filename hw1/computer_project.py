@@ -25,16 +25,16 @@ def main():
         print(f"Error: couldn't open or read from {path}: {e}", file=sys.stderr)
         sys.exit(1)
 
-    try:
-        # TODO: Save each images 
-        # 1 - 4 subsampled
-        # 2 - 16 subsampled
-        # 3 - 4 interpolated 
-        # 4 - 16 interpolated 
-        with open(ofile, 'wb') as f:
-            image.tofile(f)
-    except Exception as e:
-        sys.exit(1)
+    # try:
+    #     # TODO: Save each images 
+    #     # 1 - 4 subsampled
+    #     # 2 - 16 subsampled
+    #     # 3 - 4 interpolated 
+    #     # 4 - 16 interpolated 
+    #     with open(ofile, 'wb') as f:
+    #         image.tofile(f)
+    # except Exception as e:
+    #     sys.exit(1)
 
 if __name__ == "__main__":
     main()
