@@ -1,5 +1,3 @@
-import rawpy
-import imageio
 import numpy as np
 from PIL import Image
 
@@ -43,9 +41,9 @@ def save_image(image, filename):
 
 def main(img_name):
     try:
-        with rawpy.imread(f'{img_name}.raw') as raw:
-            color_image  = raw.postprocess()
-            grayscale_image = to_grayscale(color_image)
+        with open(f'{img_name}.raw', 'rb') as raw:
+            data = np.frombuffer(raw.read(), dtype=np.uint8)
+            grayscale_image = data.reshape((ROWS, COLUMNS))
 
             # 1. Subsample the image (4 level)
             subsample_4 = subsample(grayscale_image, 4)
@@ -78,5 +76,5 @@ def main(img_name):
         print(f"Error: {e}")
 
 if __name__ == "__main__":
-    img_name = "triangle"
+    img_name = "cat"
     main(img_name)
