@@ -7,17 +7,6 @@ ROWS = 480
 COLUMNS = 640
 
 def histogram_equalization(image_array):
-    """Applies histogram equalization to a grayscale image.
-
-    Args:
-        image_array (numpy.ndarray): The input grayscale image as a NumPy array.
-        L (int): The total number of gray levels (default is 256).
-
-    Returns:
-        tuple: A tuple containing:
-            - numpy.ndarray: The histogram equalized image.
-            - numpy.ndarray: The mapping function (output gray level vs. input gray level).
-    """
     # 1. Calculate the histogram of the input image
     histogram, bins = np.histogram(image_array.flatten(), bins=L, range=(0, L))
 
@@ -54,18 +43,15 @@ def draw_cat_imgs(original_image, equalized_image):
     plt.figure(figsize=(10, 5))
 
     plt.subplot(1, 2, 1)
-    plt.imshow(original_image, cmap='gray')
+    plt.imshow(original_image, cmap='gray', vmin=0, vmax=255)
     plt.title('Original Image')
 
     plt.subplot(1, 2, 2)
-    plt.imshow(equalized_image, cmap='gray')
+    plt.imshow(equalized_image, cmap='gray', vmin=0, vmax=255)
     plt.title('Histogram Equalized Image')
 
     plt.tight_layout()
     plt.show()
-
-    print("\nDescription of the transformed image:")
-    print("The histogram equalized image typically exhibits increased global contrast compared to the original image. This is because histogram equalization aims to redistribute the pixel intensities so that they are more evenly distributed across the entire range of gray levels. Regions that were previously very dark might become brighter, and regions that were very bright might become darker, leading to the enhancement of details that were not clearly visible in the original image. The overall dynamic range of the image is often expanded, making it easier to distinguish different features and textures.")
 
 
 if __name__ == "__main__":
