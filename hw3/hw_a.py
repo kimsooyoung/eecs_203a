@@ -35,9 +35,9 @@ def plot_histogram(image, title):
 
 if __name__ == "__main__":
 
-    image_name = "cat" 
+    # image_name = "cat" 
     # or 
-    # image_name = "triangle" 
+    image_name = "triangle" 
 
     try:
         with open(f"{image_name}.raw", "rb") as f:
