@@ -6,43 +6,30 @@ L = 256
 ROWS = 480
 COLUMNS = 640
 
-def manual_convolve(image, kernel):
-    k_h, k_w = kernel.shape
-    i_h, i_w = image.shape
-
-    # Output dimensions: only "valid" region
-    out_h = i_h - k_h + 1
-    out_w = i_w - k_w + 1
-    output = np.zeros((out_h, out_w), dtype=np.float32)
-
-    # Convolution operation
-    for i in range(out_h):
-        for j in range(out_w):
-            region = image[i:i + k_h, j:j + k_w]
-            output[i, j] = np.sum(region * kernel)
-
-    return output
-
-def normalize_to_255(image):
-    min_val = image.min()
-    if min_val < 0:
-        image = image - min_val
-    max_val = image.max()
-    if max_val > 0:
-        image = (image / max_val) * 255
-    return image.astype(np.uint8)
-
 def apply_laplacian_filter(image):
+    print(f"minimum value from Image: {np.min(image)}")
+
     # Define 3x3 Laplacian filter with -8 in the center
     kernel = np.array([[1, 1, 1],
                        [1, -8, 1],
                        [1, 1, 1]])
-    
+
+    # kernel output can be negative; make a copy of image considering negative values
+    image_int16 = image.astype(np.int16)
+
     # Apply convolution (ignoring border)
-    filtered = manual_convolve(image, kernel)
-    
-    # return both scaled and raw
-    return normalize_to_255(filtered), filtered
+    laplacian = cv2.filter2D(image_int16, ddepth=-1, kernel=kernel, borderType=cv2.BORDER_CONSTANT)
+
+    # Add a constant to the image so that the smallest value becomes zero
+    min_val = np.min(laplacian)
+    laplacian_shifted = laplacian - min_val  # This makes the smallest value zero
+
+    # Scale to 0–255 and convert to uint8
+    max_val = np.max(laplacian_shifted)
+    laplacian_scaled = (laplacian_shifted / max_val) * 255
+    laplacian_uint8 = laplacian_scaled.astype(np.uint8)
+
+    return laplacian_uint8
 
 def apply_sharpening_filter(image, laplacian):
     # Sharpened image = input - Laplacian
@@ -68,7 +55,7 @@ if __name__ == "__main__":
         exit()
 
     # Apply Laplacian filters
-    laplacian_image, _ = apply_laplacian_filter(original_image)
+    laplacian_image = apply_laplacian_filter(original_image)
 
     # Apply sharpening filters
     sharpened_image = apply_sharpening_filter(original_image, laplacian_image)

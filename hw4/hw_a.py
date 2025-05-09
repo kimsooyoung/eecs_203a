@@ -1,40 +1,49 @@
-import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.signal import convolve2d
 
 L = 256
 ROWS = 480
 COLUMNS = 640
 
 def apply_laplacian_filter(image):
+    print(f"minumum value from Image: {np.min(image)}")
+
     # Define 3x3 Laplacian filter with -8 in the center
     kernel = np.array([[1, 1, 1],
                        [1, -8, 1],
-                       [1, 1, 1]])
+                       [1, 1, 1]], dtype=np.int32)
     
-    # Apply convolution (ignoring border)
-    filtered = cv2.filter2D(image, -1, kernel, borderType=cv2.BORDER_CONSTANT)
-    
-    # Normalize: shift so min is 0
-    min_val = np.min(filtered)
-    if min_val < 0:
-        filtered = filtered - min_val
+    image = image.astype(np.float32)
 
-    # Scale to 0–255 and convert to uint8
-    filtered = (filtered / np.max(filtered)) * 255
+    filtered = convolve2d(image, kernel, mode='valid')
+
+    filtered -= filtered.min()
+    if filtered.max() > 0:
+        filtered *= (255.0 / filtered.max())
+
     return filtered.astype(np.uint8)
 
-def apply_sharpening_filter(image, laplacian):
-    # Sharpened image = input - Laplacian
-    sharpened = image.astype(np.int16) - laplacian.astype(np.int16)
-    sharpened = np.clip(sharpened, 0, 255)
-    return sharpened.astype(np.uint8)
+def apply_sharpening_filter(image):
+    # Define 3x3 Laplacian filter with -8 in the center
+    kernel = np.array([[-1, -1, -1],
+                       [-1, 9, -1],
+                       [-1, -1, -1]], dtype=np.int32)
+    
+    image = image.astype(np.float32)
+
+    filtered = convolve2d(image, kernel, mode='valid')
+
+    filtered -= filtered.min()
+    if filtered.max() > 0:
+        filtered *= (255.0 / filtered.max())
+
+    return filtered.astype(np.uint8)
 
 if __name__ == "__main__":
 
-    image_name = "cat" 
-    # or 
-    # image_name = "triangle" 
+    # image_name = "cat" 
+    image_name = "triangle" 
 
     try:
         with open(f"{image_name}.raw", "rb") as f:
@@ -47,13 +56,13 @@ if __name__ == "__main__":
         print(f"Error loading '{image_name}.raw': {e}")
         exit()
 
-    # Apply Laplacian filters
+    # Apply Laplacian filter using convolve2d
     laplacian_image = apply_laplacian_filter(original_image)
 
-    # Apply sharpening filters
-    sharpened_image = apply_sharpening_filter(original_image, laplacian_image)
+    # Apply sharpening filter
+    sharpened_image = apply_sharpening_filter(original_image)
 
-    # show_images
+    # Show images
     plt.figure(figsize=(12, 6))
 
     plt.subplot(1, 2, 1)
