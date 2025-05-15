@@ -40,17 +40,17 @@ if __name__ == "__main__":
 
     plt.subplot(2, 2, 2)
     plt.imshow(filtered_3x3, cmap='gray')
-    plt.title("3x3 Mean Filter")
+    plt.title("3x3 Arithmetic Mean Filter")
     plt.axis('off')
 
     plt.subplot(2, 2, 3)
     plt.imshow(filtered_7x7, cmap='gray')
-    plt.title("7x7 Mean Filter")
+    plt.title("7x7 Arithmetic Mean Filter")
     plt.axis('off')
 
     plt.subplot(2, 2, 4)
     plt.imshow(filtered_9x9, cmap='gray')
-    plt.title("9x9 Mean Filter")
+    plt.title("9x9 Arithmetic Mean Filter")
     plt.axis('off')
 
     plt.tight_layout()

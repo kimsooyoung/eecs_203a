@@ -1,52 +1,73 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.signal import convolve2d
-from scipy.ndimage import generic_filter as gf, median_filter as medf, maximum_filter as maxf, minimum_filter as minf
+from scipy.ndimage import generic_filter, median_filter as scipy_median_filter, maximum_filter as scipy_max_filter, minimum_filter as scipy_min_filter
 
 L = 256
 ROWS = 256
 COLUMNS = 256
 
-# TODO: Implement each filters
+# TODO 1: Implement each filters
+# You may ignore image border effects, in which the masks only
+# partially contain image pixels.
+
+# TODO 2: Add comments that brief verbal description of the result. 
+# For example, “the resulting image will consist of vertical bars 3 pixels wide and 206 pixels high.” 
+# Be sure to describe any deformation of the bars, such as rounded corners. 
+
+# Geometric Mean Filter
 def geometric_mean_filter(image, size):
-    def geo_mean(arr):
-        arr = arr + 1e-8  # avoid log(0)
-        return np.exp(np.mean(np.log(arr)))
-    return gf(image.astype(float), geo_mean, size=(size, size))
+    def geo_mean(values):
+        product = np.prod(values + 1e-8)  # Avoid log(0)
+        return product ** (1.0 / len(values))
+    filtered = generic_filter(image.astype(float), geo_mean, size=(size, size))
+    # Description: Smooths the image while preserving edge transitions better than arithmetic mean. Bars may appear slightly blurred but sharpness mostly retained.
+    return filtered.astype(np.uint8)
 
 # Harmonic Mean Filter
 def harmonic_mean_filter(image, size):
-    def harm_mean(arr):
-        arr = arr + 1e-8  # avoid divide by 0
-        return len(arr) / np.sum(1.0 / arr)
-    return gf(image.astype(float), harm_mean, size=(size, size))
+    def harm_mean(values):
+        values = values.astype(float) + 1e-8  # Prevent division by zero
+        return len(values) / np.sum(1.0 / values)
+    filtered = generic_filter(image.astype(float), harm_mean, size=(size, size))
+    # Description: Reduces Gaussian noise while preserving edge definition. Dark regions tend to be preserved better than bright.
+    return filtered.astype(np.uint8)
 
 # Contraharmonic Mean Filter
 def contraharmonic_mean_filter(image, size, Q):
-    def contra_mean(arr):
-        arr = arr.astype(float)
-        num = np.sum(arr**(Q + 1))
-        den = np.sum(arr**Q) + 1e-8  # avoid divide by 0
-        return num / den
-    return gf(image.astype(float), contra_mean, size=(size, size))
+    def contra_mean(values):
+        values = values.astype(float)
+        numerator = np.sum(values ** (Q + 1))
+        denominator = np.sum(values ** Q) + 1e-8  # Avoid division by zero
+        return numerator / denominator
+    filtered = generic_filter(image.astype(float), contra_mean, size=(size, size))
+    # Description: Q > 0 reduces pepper noise; Q < 0 reduces salt noise. Stripes may appear faded or smoothed depending on noise and Q.
+    return filtered.astype(np.uint8)
 
 # Median Filter
 def median_filter(image, size):
-    return medf(image, size=size)
+    filtered = scipy_median_filter(image, size=size)
+    # Description: Removes salt-and-pepper noise effectively. Stripes will remain mostly intact unless very thin.
+    return filtered
 
 # Maximum Filter
 def maximum_filter(image, size):
-    return maxf(image, size=size)
+    filtered = scipy_max_filter(image, size=size)
+    # Description: Brightens image by enhancing light regions. Dark stripes may get reduced or disappear depending on width.
+    return filtered
 
 # Minimum Filter
 def minimum_filter(image, size):
-    return minf(image, size=size)
+    filtered = scipy_min_filter(image, size=size)
+    # Description: Darkens image by enhancing dark regions. White areas between dark stripes may shrink or disappear.
+    return filtered
 
 # Midpoint Filter
 def midpoint_filter(image, size):
-    def mid(arr):
-        return 0.5 * (np.max(arr) + np.min(arr))
-    return gf(image.astype(float), mid, size=(size, size))
+    def midpoint(values):
+        return (np.max(values) + np.min(values)) / 2.0
+    filtered = generic_filter(image.astype(float), midpoint, size=(size, size))
+    # Description: Smooths image by averaging extreme values. Bars may appear rounded or blurred depending on filter size.
+    return filtered.astype(np.uint8)
 
 if __name__ == "__main__":
 
@@ -97,7 +118,7 @@ if __name__ == "__main__":
     midpoint_filtered_9x9 = midpoint_filter(original_image, 9)
 
     # Select filter set to display
-    filter_name = "midpoint"  # Change this to any of: arithmetic, geometric, harmonic, contraharmonic_pos, contraharmonic_neg, median, max, min, midpoint
+    filter_name = "harmonic"  # Change this to any of: arithmetic, geometric, harmonic, contraharmonic_pos, contraharmonic_neg, median, max, min, midpoint
 
     if filter_name == "geometric":
         filtered_3x3 = geo_filtered_3x3
