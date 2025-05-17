@@ -1,73 +1,93 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.ndimage import generic_filter, median_filter as scipy_median_filter, maximum_filter as scipy_max_filter, minimum_filter as scipy_min_filter
+from scipy.ndimage import convolve, median_filter, maximum_filter, minimum_filter
 
 L = 256
 ROWS = 256
 COLUMNS = 256
 
-# TODO 1: Implement each filters
-# You may ignore image border effects, in which the masks only
-# partially contain image pixels.
+class Filter:
 
-# TODO 2: Add comments that brief verbal description of the result. 
-# For example, “the resulting image will consist of vertical bars 3 pixels wide and 206 pixels high.” 
-# Be sure to describe any deformation of the bars, such as rounded corners. 
+    @staticmethod
+    def mean(image: np.ndarray, size: int):
+        kernel = np.ones((size, size), dtype=np.float32) / (size * size)
+        return convolve(image, kernel, mode='reflect')
 
-# Geometric Mean Filter
-def geometric_mean_filter(image, size):
-    def geo_mean(values):
-        product = np.prod(values + 1e-8)  # Avoid log(0)
-        return product ** (1.0 / len(values))
-    filtered = generic_filter(image.astype(float), geo_mean, size=(size, size))
-    # Description: Smooths the image while preserving edge transitions better than arithmetic mean. Bars may appear slightly blurred but sharpness mostly retained.
-    return filtered.astype(np.uint8)
+    @staticmethod
+    def geo_mean(image: np.ndarray, size: int, eps: float = 1e-9):
+        img_f = image.astype(np.float32) + eps
+        logs = np.log(img_f)
+        sum_logs = convolve(logs, np.ones((size, size), dtype=np.float32), mode='reflect')
+        g = np.exp(sum_logs / (size * size))
+        if np.issubdtype(image.dtype, np.integer):
+            g = np.clip(g, 0, 255)
+            return g.astype(image.dtype)
+        return g
 
-# Harmonic Mean Filter
-def harmonic_mean_filter(image, size):
-    def harm_mean(values):
-        values = values.astype(float) + 1e-8  # Prevent division by zero
-        return len(values) / np.sum(1.0 / values)
-    filtered = generic_filter(image.astype(float), harm_mean, size=(size, size))
-    # Description: Reduces Gaussian noise while preserving edge definition. Dark regions tend to be preserved better than bright.
-    return filtered.astype(np.uint8)
+    @staticmethod
+    def harmonic(image: np.ndarray, size: int, eps: float = 1e-6):
+        if size < 1 or size % 2 == 0:
+            raise ValueError("Kernel size must be a positive odd integer")
+        img_f = image.astype(np.float32) + eps
+        reciprocals = 1.0 / img_f
+        sum_rec = convolve(reciprocals, np.ones((size, size), dtype=np.float32), mode='reflect')
+        h = (size * size) / sum_rec
+        return np.clip(h, 0, 255).astype(image.dtype)
 
-# Contraharmonic Mean Filter
-def contraharmonic_mean_filter(image, size, Q):
-    def contra_mean(values):
-        values = values.astype(float)
-        numerator = np.sum(values ** (Q + 1))
-        denominator = np.sum(values ** Q) + 1e-8  # Avoid division by zero
-        return numerator / denominator
-    filtered = generic_filter(image.astype(float), contra_mean, size=(size, size))
-    # Description: Q > 0 reduces pepper noise; Q < 0 reduces salt noise. Stripes may appear faded or smoothed depending on noise and Q.
-    return filtered.astype(np.uint8)
+    @staticmethod
+    def contraharmonic(image: np.ndarray, size: int, Q: float, eps: float = 1e-6):
+        if size < 1 or size % 2 == 0:
+            raise ValueError("Kernel size must be a positive odd integer")
+        img_f = image.astype(np.float32) + eps
+        num = convolve(img_f ** (Q + 1), np.ones((size, size), dtype=np.float32), mode='reflect')
+        den = convolve(img_f ** Q, np.ones((size, size), dtype=np.float32), mode='reflect')
+        ch = num / den
+        pad = size // 2
+        ch_valid = ch[pad:-pad, pad:-pad]
+        return np.clip(ch_valid, 0, 255).astype(image.dtype)
 
-# Median Filter
-def median_filter(image, size):
-    filtered = scipy_median_filter(image, size=size)
-    # Description: Removes salt-and-pepper noise effectively. Stripes will remain mostly intact unless very thin.
-    return filtered
+    @staticmethod
+    def median(image: np.ndarray, size: int):
+        if size < 1 or size % 2 == 0:
+            raise ValueError("Kernel size must be a positive odd integer")
+        return median_filter(image, size=size, mode='reflect')
 
-# Maximum Filter
-def maximum_filter(image, size):
-    filtered = scipy_max_filter(image, size=size)
-    # Description: Brightens image by enhancing light regions. Dark stripes may get reduced or disappear depending on width.
-    return filtered
+    @staticmethod
+    def max(image: np.ndarray, size: int):
+        if size < 1 or size % 2 == 0:
+            raise ValueError("Kernel size must be a positive odd integer")
+        return maximum_filter(image, size=size, mode='reflect')
 
-# Minimum Filter
-def minimum_filter(image, size):
-    filtered = scipy_min_filter(image, size=size)
-    # Description: Darkens image by enhancing dark regions. White areas between dark stripes may shrink or disappear.
-    return filtered
+    @staticmethod
+    def min(image: np.ndarray, size: int):
+        if size < 1 or size % 2 == 0:
+            raise ValueError("Kernel size must be a positive odd integer")
+        return minimum_filter(image, size=size, mode='reflect')
 
-# Midpoint Filter
-def midpoint_filter(image, size):
-    def midpoint(values):
-        return (np.max(values) + np.min(values)) / 2.0
-    filtered = generic_filter(image.astype(float), midpoint, size=(size, size))
-    # Description: Smooths image by averaging extreme values. Bars may appear rounded or blurred depending on filter size.
-    return filtered.astype(np.uint8)
+    @staticmethod
+    def midpoint(image: np.ndarray, size: int):
+        max_img = Filter.max(image, size)
+        min_img = Filter.min(image, size)
+        mid = (max_img.astype(np.float32) + min_img.astype(np.float32)) / 2
+        return np.clip(mid, 0, 255).astype(image.dtype)
+
+def plot_filters(original: np.ndarray,
+                 filtered: dict[int, np.ndarray],
+                 title_prefix: str = "Image"):
+    ncols = 1 + len(filtered)
+    fig, axs = plt.subplots(1, ncols, figsize=(4*ncols, 4))
+    
+    axs[0].imshow(original, cmap="gray")
+    axs[0].set_title(f"{title_prefix} – original")
+    axs[0].axis("off")
+    
+    for ax, (k, img_filt) in zip(axs[1:], sorted(filtered.items())):
+        ax.imshow(img_filt, cmap="gray", vmin=0, vmax=255)
+        ax.set_title(f"{title_prefix} – {k}×{k}")
+        ax.axis("off")
+    
+    plt.tight_layout()
+    plt.show()
 
 if __name__ == "__main__":
 
@@ -75,7 +95,7 @@ if __name__ == "__main__":
 
     try:
         with open(f"{image_name}.raw", "rb") as f:
-            data = np.fromfile(f, dtype=np.uint8)
+            data = np.frombuffer(f.read(), dtype=np.uint8)
             original_image = data.reshape((ROWS, COLUMNS))
     except FileNotFoundError:
         print(f"Error: '{image_name}.raw' not found.")
@@ -84,58 +104,23 @@ if __name__ == "__main__":
         print(f"Error loading '{image_name}.raw': {e}")
         exit()
 
-    # Apply filters
-    geo_filtered_3x3 = geometric_mean_filter(original_image, 3)
-    geo_filtered_7x7 = geometric_mean_filter(original_image, 7)
-    geo_filtered_9x9 = geometric_mean_filter(original_image, 9)
-
-    harm_filtered_3x3 = harmonic_mean_filter(original_image, 3)
-    harm_filtered_7x7 = harmonic_mean_filter(original_image, 7)
-    harm_filtered_9x9 = harmonic_mean_filter(original_image, 9)
-
-    pos_contra_filtered_3x3 = contraharmonic_mean_filter(original_image, 3, Q=+1)
-    pos_contra_filtered_7x7 = contraharmonic_mean_filter(original_image, 7, Q=+1)
-    pos_contra_filtered_9x9 = contraharmonic_mean_filter(original_image, 9, Q=+1)
-
-    neg_contra_filtered_3x3 = contraharmonic_mean_filter(original_image, 3, Q=-1)
-    neg_contra_filtered_7x7 = contraharmonic_mean_filter(original_image, 7, Q=-1)
-    neg_contra_filtered_9x9 = contraharmonic_mean_filter(original_image, 9, Q=-1)
-
-    median_filtered_3x3 = median_filter(original_image, 3)
-    median_filtered_7x7 = median_filter(original_image, 7)
-    median_filtered_9x9 = median_filter(original_image, 9)
-
-    max_filtered_3x3 = maximum_filter(original_image, 3)
-    max_filtered_7x7 = maximum_filter(original_image, 7)
-    max_filtered_9x9 = maximum_filter(original_image, 9)
-
-    min_filtered_3x3 = minimum_filter(original_image, 3)
-    min_filtered_7x7 = minimum_filter(original_image, 7)
-    min_filtered_9x9 = minimum_filter(original_image, 9)
-
-    midpoint_filtered_3x3 = midpoint_filter(original_image, 3)
-    midpoint_filtered_7x7 = midpoint_filter(original_image, 7)
-    midpoint_filtered_9x9 = midpoint_filter(original_image, 9)
-
-    # Select filter set to display
     filter_name = "harmonic"  # Change this to any of: arithmetic, geometric, harmonic, contraharmonic_pos, contraharmonic_neg, median, max, min, midpoint
 
+    # Apply filters
+    kernels = [3, 7, 9]
+    # plot_filters(original_image, filtered, title_prefix="Harmonic Filter")
+
+    # Select filter set to display
+    filter_name = "geometric"  # Change this to any of: arithmetic, geometric, harmonic, contraharmonic_pos, contraharmonic_neg, median, max, min, midpoint
+
     if filter_name == "geometric":
-        filtered_3x3 = geo_filtered_3x3
-        filtered_7x7 = geo_filtered_7x7
-        filtered_9x9 = geo_filtered_9x9
+        filtered = {k: Filter.geo_mean(original_image, k) for k in kernels}
     elif filter_name == "harmonic":
-        filtered_3x3 = harm_filtered_3x3
-        filtered_7x7 = harm_filtered_7x7
-        filtered_9x9 = harm_filtered_9x9
+        filtered = {k: Filter.harmonic(original_image, k) for k in kernels}
     elif filter_name == "contraharmonic_pos":
-        filtered_3x3 = pos_contra_filtered_3x3
-        filtered_7x7 = pos_contra_filtered_7x7
-        filtered_9x9 = pos_contra_filtered_9x9
+        filtered = {k: Filter.contraharmonic(original_image, k, Q = 1) for k in kernels}
     elif filter_name == "contraharmonic_neg":
-        filtered_3x3 = neg_contra_filtered_3x3
-        filtered_7x7 = neg_contra_filtered_7x7
-        filtered_9x9 = neg_contra_filtered_9x9
+        filtered = {k: Filter.contraharmonic(original_image, k, Q = -1) for k in kernels}
     elif filter_name == "median":
         filtered_3x3 = median_filtered_3x3
         filtered_7x7 = median_filtered_7x7
@@ -160,22 +145,22 @@ if __name__ == "__main__":
     plt.figure(figsize=(12, 8))
 
     plt.subplot(2, 2, 1)
-    plt.imshow(original_image, cmap='gray')
+    plt.imshow(original_image, cmap="gray", vmin=0, vmax=255)
     plt.title("Original Image")
     plt.axis('off')
 
     plt.subplot(2, 2, 2)
-    plt.imshow(filtered_3x3, cmap='gray')
+    plt.imshow(filtered[3], cmap="gray", vmin=0, vmax=255)
     plt.title("3x3 " + filter_name.capitalize() + " Filter")
     plt.axis('off')
 
     plt.subplot(2, 2, 3)
-    plt.imshow(filtered_7x7, cmap='gray')
+    plt.imshow(filtered[7], cmap="gray", vmin=0, vmax=255)
     plt.title("7x7 " + filter_name.capitalize() + " Filter")
     plt.axis('off')
 
     plt.subplot(2, 2, 4)
-    plt.imshow(filtered_9x9, cmap='gray')
+    plt.imshow(filtered[9], cmap="gray", vmin=0, vmax=255)
     plt.title("9x9 " + filter_name.capitalize() + " Filter")
     plt.axis('off')
 

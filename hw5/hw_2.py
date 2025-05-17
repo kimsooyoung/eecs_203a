@@ -1,52 +1,57 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.signal import convolve2d
-from scipy.ndimage import generic_filter as gf, median_filter as medf, maximum_filter as maxf, minimum_filter as minf
+from scipy.ndimage import generic_filter, median_filter as scipy_median_filter
+from scipy.ndimage import maximum_filter as scipy_maximum_filter, minimum_filter as scipy_minimum_filter
 
 L = 256
 ROWS = 256
 COLUMNS = 256
 
-# TODO: Implement each filters
+# TODO: fill in below functions properly
+def arithmetic_mean_filter(image, size):
+    kernel = np.ones((size, size), dtype=np.float32) / (size * size)
+    return ndimage.convolve(image, kernel, mode='nearest')
+
+# Geometric Mean Filter
 def geometric_mean_filter(image, size):
-    def geo_mean(arr):
-        arr = arr + 1e-8  # avoid log(0)
-        return np.exp(np.mean(np.log(arr)))
-    return gf(image.astype(float), geo_mean, size=(size, size))
+    def geo_mean(values):
+        values = np.maximum(values, 1e-5)  # avoid log(0)
+        return np.exp(np.mean(np.log(values)))
+    return generic_filter(image.astype(np.float64), geo_mean, size=size)
 
 # Harmonic Mean Filter
 def harmonic_mean_filter(image, size):
-    def harm_mean(arr):
-        arr = arr + 1e-8  # avoid divide by 0
-        return len(arr) / np.sum(1.0 / arr)
-    return gf(image.astype(float), harm_mean, size=(size, size))
+    def harm_mean(values):
+        values = np.maximum(values, 1e-5)
+        return len(values) / np.sum(1.0 / values)
+    return generic_filter(image.astype(np.float64), harm_mean, size=size)
 
 # Contraharmonic Mean Filter
 def contraharmonic_mean_filter(image, size, Q):
-    def contra_mean(arr):
-        arr = arr.astype(float)
-        num = np.sum(arr**(Q + 1))
-        den = np.sum(arr**Q) + 1e-8  # avoid divide by 0
-        return num / den
-    return gf(image.astype(float), contra_mean, size=(size, size))
+    def contra_mean(values):
+        values = values.astype(np.float64)
+        numerator = np.sum(values ** (Q + 1))
+        denominator = np.sum(values ** Q) + 1e-5  # avoid division by zero
+        return numerator / denominator
+    return generic_filter(image, contra_mean, size=size)
 
 # Median Filter
 def median_filter(image, size):
-    return medf(image, size=size)
+    return scipy_median_filter(image, size=size)
 
 # Maximum Filter
 def maximum_filter(image, size):
-    return maxf(image, size=size)
+    return scipy_maximum_filter(image, size=size)
 
 # Minimum Filter
 def minimum_filter(image, size):
-    return minf(image, size=size)
+    return scipy_minimum_filter(image, size=size)
 
 # Midpoint Filter
 def midpoint_filter(image, size):
-    def mid(arr):
-        return 0.5 * (np.max(arr) + np.min(arr))
-    return gf(image.astype(float), mid, size=(size, size))
+    def midpoint(values):
+        return 0.5 * (np.max(values) + np.min(values))
+    return generic_filter(image, midpoint, size=size)
 
 if __name__ == "__main__":
 
@@ -54,7 +59,8 @@ if __name__ == "__main__":
 
     try:
         with open(f"{image_name}.raw", "rb") as f:
-            data = np.fromfile(f, dtype=np.uint8)
+            # data = np.fromfile(f, dtype=np.uint8)
+            data = np.frombuffer(f.read(), dtype=np.uint8)
             original_image = data.reshape((ROWS, COLUMNS))
     except FileNotFoundError:
         print(f"Error: '{image_name}.raw' not found.")
@@ -64,6 +70,10 @@ if __name__ == "__main__":
         exit()
 
     # Apply filters
+    arith_filtered_3x3 = arithmetic_mean_filter(original_image, 3)
+    arith_filtered_7x7 = arithmetic_mean_filter(original_image, 7)
+    arith_filtered_9x9 = arithmetic_mean_filter(original_image, 9)
+
     geo_filtered_3x3 = geometric_mean_filter(original_image, 3)
     geo_filtered_7x7 = geometric_mean_filter(original_image, 7)
     geo_filtered_9x9 = geometric_mean_filter(original_image, 9)
@@ -97,8 +107,12 @@ if __name__ == "__main__":
     midpoint_filtered_9x9 = midpoint_filter(original_image, 9)
 
     # Select filter set to display
-    filter_name = "midpoint"  # Change this to any of: arithmetic, geometric, harmonic, contraharmonic_pos, contraharmonic_neg, median, max, min, midpoint
+    filter_name = "harmonic"  # Change this to any of: arithmetic, geometric, harmonic, contraharmonic_pos, contraharmonic_neg, median, max, min, midpoint
 
+    if filter_name == "arithmetic":
+        filtered_3x3 = arith_filtered_3x3
+        filtered_7x7 = arith_filtered_7x7
+        filtered_9x9 = arith_filtered_9x9
     if filter_name == "geometric":
         filtered_3x3 = geo_filtered_3x3
         filtered_7x7 = geo_filtered_7x7
@@ -139,22 +153,22 @@ if __name__ == "__main__":
     plt.figure(figsize=(12, 8))
 
     plt.subplot(2, 2, 1)
-    plt.imshow(original_image, cmap='gray')
+    plt.imshow(original_image, cmap="gray", vmin=0, vmax=255)
     plt.title("Original Image")
     plt.axis('off')
 
     plt.subplot(2, 2, 2)
-    plt.imshow(filtered_3x3, cmap='gray')
+    plt.imshow(filtered_3x3, cmap="gray", vmin=0, vmax=255)
     plt.title("3x3 " + filter_name.capitalize() + " Filter")
     plt.axis('off')
 
     plt.subplot(2, 2, 3)
-    plt.imshow(filtered_7x7, cmap='gray')
+    plt.imshow(filtered_7x7, cmap="gray", vmin=0, vmax=255)
     plt.title("7x7 " + filter_name.capitalize() + " Filter")
     plt.axis('off')
 
     plt.subplot(2, 2, 4)
-    plt.imshow(filtered_9x9, cmap='gray')
+    plt.imshow(filtered_9x9, cmap="gray", vmin=0, vmax=255)
     plt.title("9x9 " + filter_name.capitalize() + " Filter")
     plt.axis('off')
 
