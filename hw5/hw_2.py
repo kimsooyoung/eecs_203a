@@ -7,7 +7,11 @@ L = 256
 ROWS = 256
 COLUMNS = 256
 
-# TODO: fill in below functions properly
+# TODO: for each filters, write a brief verbal description of the result. For example, “the resulting image will consist
+# of vertical bars 3 pixels wide and 206 pixels high. / The mean filter smooths out the bars and as we increase the kernel size, the bars corners become soewhat visibly rounded while also becoming darker as well” Be sure to describe any deformation of the bars, such as rounded corners. You may ignore image border effects, in which the masks only
+# partially contain image pixels.
+
+# Arithmetic Mean filter
 def arithmetic_mean_filter(image, size):
     kernel = np.ones((size, size), dtype=np.float32) / (size * size)
     return ndimage.convolve(image, kernel, mode='nearest')
